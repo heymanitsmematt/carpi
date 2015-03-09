@@ -1,0 +1,13 @@
+{% load staticfiles %} 
+
+<html lang="en">
+<head>
+    <script src="{% static "carpi/js/jquery.js" %}"></script>
+</head>
+<body>
+    <div id="content_block">
+    {% block content %}
+    {% endblock %}
+    </div>
+</body>
+</html>
