@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'driver',
     'transmit',
     'carpi',
+    'diagnostics',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -46,7 +47,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+#    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -64,7 +65,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'carpi',
 	'USER': 'root',
-	'PASSWORD': 'Richard87',
+	'PASSWORD': 'richard',
 	'HOST': 'localhost',
 	'PORT': '3306',
     }

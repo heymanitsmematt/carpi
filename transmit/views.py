@@ -1,74 +1,79 @@
 from django.shortcuts import render
-from django.views.generic import TemplateView, ListView, View
+from django.views.generic import TemplateView, ListView, View, DetailView
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.servers.basehttp import FileWrapper
 from transmit.models import Files
-
 import subprocess
-from os import listdir
-from os.path import isfile, join
+import os
+import fnmatch
 
-# Create your views here. 
+
 '''
-   to start a radio transmission, the format is 'pifmplay <dir of file> <freq>
-   to edit the freq, edit ~/pifmplay/pifmplay, 'frequency=91.3' is default
-   example: sudo sh /home/pi/pifmplay/pifmplay "/home/pi/music/Daft Punk/Technologic.mp3" 91.3
+	This file is used to manage the music interface.
+        beets is used to organize music, get metadata, and web player interface
+        configure beets directory with beet config -e
+            directory: ~/beets-music
+            library: ~/data/musiclibrary.blb
+        #run $ beet import /home/matthew/Music periodically to import and sort new music ( $ beet import -A /home/matthew/Music for fast noninteractive)
 '''
 
-class TransmitView(ListView):
-    files = Files.objects.all()
-    directory = '/./home/pi/Music'
-    dir_files = [f for f in listdir(directory) if isfile(join(directory,f))]
-	
-    #add any new files to Files model
-    for file in dir_files:
-        if file in files:
-            pass
-	else:
-	    thisFile = Files.objects.create(file_name=file, file_path=join(directory,file), times_played=0)
-	    thisFile.save()
+musicPath = "/home/matthew/carpi/transmit/media/beets-music/"
 
-    #Remove any files from Files model that no longer exist
-    for file in files:
-        if file in dir_files:
-            pass
-	else:
-	    file.delete()
-	    
-    
-    #return model for list view rendering
+class TransmitView(DetailView):
+
     model = Files
-    context_object_name = 'files'
+
+    def get_context_data(self, **kwargs):
+        context = super(TransmitView, self).get_context_data(**kwargs)
+        context['songs'] = Files.objects.all()
+        return context
+
+    def get_object(self):
+        pass
 
 class Player(View):
-    def get(self, request):
-	if request.method == 'GET':
-	    action = request.GET.get('action')
+    def get_context_data(self, **kwargs):
+        context = super(Player, self).get_context_data(**kwargs)
+        return context
 
-	    #play will be sent in the URI for a new file play
-	    if action == 'play':
-	        thisFile = request.GET.get('file_path')
-	        mediaFile = Files.objects.get(file_name=thisFile)
-	        mediaFile.times_played += 1
-	        mediaFile.save()
-	        command = 'sudo sh /home/pi/pifmplay/pifmplay', thisPath
- 
-	    #pause will be sent if pausing a currently playing file
-	    elif action == 'pause':
-		command = 'sudo sh /home/pi/pifmplay/pifmplay', 'pause', '&>/dev/null &'
-	    #resume will be sent if resuming a currently paused file
-	    elif action == 'resume':
-		command = 'sudo sh /home/pi/pifmplay/pifmplay','resume', '&>/dev/null &'
+    def get(self, request, *args, **kwargs):
+        song = Files.objects.get(id = self.kwargs['id'])
+        #incriment the play_count attribute and save the new data
+        song.times_played += 1
+        song.save()
 
-	    #stop a currently playing file
-	    elif action == 'stop':
-		command = 'sudo sh /home/pi/pifmplay/pifmplay','stop','&>dev/null &'	    
+        wrapper = FileWrapper(file(song.file_path))
+        response = HttpResponse(wrapper, mimetype='audio/mpeg')
+        response['Content-Length'] = os.path.getsize(song.file_path)
+        response['Content-Disposition'] = 'filename=%s' % song.file_name
+        return response
 
-	    subp = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-	    output = subp.communicate()[0]
-	    
-	    return HttpResponse('action taken was ', action)
-	else:
-	    return HttpResponse('error transmitting')	
+class RefreshMedia(View):
+
+    #csrf_exempt decorator only works on the dispatch method
+    @csrf_exempt
+    def dispatch(self, *args, **kwargs):
+        return super(RefreshMedia, self).dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        if request.method == 'POST':
+            #refresh the database files list
+            # remove files no longer present
+            for file in Files.objects.all():
+                if file not in musicPath:
+                    file.delete()
+            
+            #add files that aren't currently in the database
+            for root, dirnames, filenames in os.walk(musicPath):
+                for filename in filenames:
+                    if filename not in [f.file_name for f in Files.objects.all()]:
+                        Files.objects.create(file_name = filename, file_path = os.path.join(root, filename), times_played = 0)
+            return HttpResponse('Music Database Refreshed!')
+        else:
+            return HttpResponse('must access through post')
+
+
 
 
 

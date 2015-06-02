@@ -1,0 +1,37 @@
+.link{
+    border-radius : 40px;
+}
+
+#cooperPi {
+    display : block;
+    height : 332;
+    width : 450;
+    margin-left : 15px;
+    opacity : 0.7;
+    border-radius : 600px;
+}
+
+#musicImage {
+    height : 100px;
+    width : 145px;
+    position : relative;
+}
+
+#driverImage {
+    height : 100px;
+    width : 134px;
+    position : relative;
+    margin-left : 200px;
+}
+
+#diagnoseImage {
+    height : 100px;
+    width : 130px;
+}
+
+#analyzeImage{
+    position : relative;
+    height : 100px;
+    width : 125px;
+    margin-left : 200px;
+}

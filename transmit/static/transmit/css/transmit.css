@@ -1,0 +1,11 @@
+ul {
+    list-style-type : none;
+}
+
+h3 {
+    text-align : center;
+}
+
+#player {
+    padding-left : 5%;
+}

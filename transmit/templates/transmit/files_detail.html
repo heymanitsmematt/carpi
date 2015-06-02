@@ -1,0 +1,18 @@
+{% extends "carpi/base.html" %}
+{% load staticfiles %}
+{% block content %}
+<h3>Media Files</h3>
+<audio controls id="player">
+    <source  src='/transmit/play/2/' type="audio/mpeg">
+</audio>
+    <input id="autoPlay" type="checkbox" name="auto-play" value="autoPlay">auto-play</input>
+    <ul>
+	{% for song in songs %}
+    <li id="{{ song.id }}" class="song">
+        <p>{{ song.file_name }} playcount-{{ song.times_played}}</p>
+    </li>
+	{% endfor %}
+    </ul>
+<script src="{% static "transmit/js/transmit.js" %}"></script>
+<link href="{% static "transmit/css/transmit.css" %}" type="text/css" rel="stylesheet">
+{% endblock %}

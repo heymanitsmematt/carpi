@@ -1,5 +1,26 @@
 {% extends "carpi/base.html" %}
+{% load staticfiles %}
 {% block content %}
-<a href="/transmit/sing/">Transmit!</a>
-<a href="/driver/drive">Drive!</a>
+<link rel="stylesheet" type="text/css" href="{% static "carpi/css/home.css"%}"></link>
+<div>
+    <a href="/transmit/sing/">
+	<img src="{% static "carpi/images/music.gif"%}" class="link" id="musicImage">
+    </a>
+
+    <a href="/driver/drive">
+	<img src="{% static "carpi/images/traffic.gif"%}" class="link" id=driverImage>
+    </a>
+</div>
+<div id="cooperPiDiv">
+    <img id="cooperPi" src="{% static "carpi/images/CooperPi.jpg" %}">
+</div>
+<div>
+    <a href="/diagnostics/diagnose">
+	<img src="{% static "carpi/images/diagnostics.gif"%}" class="link" id="diagnoseImage">
+    </a>
+    <a href="/analyzer/analyze">
+	<img src="{% static "carpi/images/analyze.gif"%}" class="link" id="analyzeImage">
+    </a>
+</div>
+
 {% endblock %}
