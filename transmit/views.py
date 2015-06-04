@@ -3,11 +3,15 @@ from django.views.generic import TemplateView, ListView, View, DetailView
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.servers.basehttp import FileWrapper
-from transmit.models import Files
+from transmit.models import Files, Artist, Song, Album
 import subprocess
+import shlex
 import os
 import fnmatch
 
+#debug only
+import sys
+import pdb
 
 '''
 	This file is used to manage the music interface.
@@ -50,7 +54,7 @@ class Player(View):
         return response
 
 class RefreshMedia(View):
-
+    
     #csrf_exempt decorator only works on the dispatch method
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
@@ -61,15 +65,43 @@ class RefreshMedia(View):
             #refresh the database files list
             # remove files no longer present
             for file in Files.objects.all():
-                if file not in musicPath:
+                if file not in os.walk(musicPath):
                     file.delete()
-            
-            #add files that aren't currently in the database
-            for root, dirnames, filenames in os.walk(musicPath):
-                for filename in filenames:
-                    if filename not in [f.file_name for f in Files.objects.all()]:
-                        Files.objects.create(file_name = filename, file_path = os.path.join(root, filename), times_played = 0)
-            return HttpResponse('Music Database Refreshed!')
+            try:    
+                #add files that aren't currently in the database
+                for root, dirnames, filenames in os.walk(musicPath):
+                    for filename in filenames:
+                        if filename not in [f.file_name for f in Files.objects.all()]:
+                            Files.objects.create(file_name = filename, file_path = os.path.join(root, filename), times_played = 0)
+                
+                #deep datatabse encoding for files. get list of files, parse, and save
+                args = shlex.split('beet list')
+                proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+                rawData = proc.stdout.read().replace('\n',',').split(',')
+                rawData.pop()
+
+                # split and save artist, album, track into database, adding fk values
+                for aatGroup in rawData:
+                    #add those that do match the obvious artist-album-track format
+                    chunk = aatGroup.split('-')
+                    thisArtist = Artist.objects.get_or_create(artist_name=chunk[0])[0]
+                    thisAlbum = Album.objects.get_or_create(album_name=chunk[1], artist_fk = thisArtist)[0]
+                    thisTrack = Song.objects.get_or_create(song_name=chunk[2], album_fk = thisAlbum)[0]
+
+                    try:
+                        thisTrack.files_fk = Files.objects.get(file_name__contains = thisTrack.song_name)
+                    except:
+                        err = sys.exc_info()
+                        pdb.set_trace()
+
+                    thisArtist.save()
+                    thisAlbum.save()
+                    thisTrack.save()
+
+                return HttpResponse('Music Database Refreshed!')
+            except: 
+                err = sys.exc_info()
+                pdb.set_trace()
         else:
             return HttpResponse('must access through post')
 

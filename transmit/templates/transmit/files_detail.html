@@ -7,10 +7,12 @@
 </audio>
     <input id="autoPlay" type="checkbox" name="auto-play" value="autoPlay">auto-play</input>
     <ul>
-	{% for song in songs %}
-    <li id="{{ song.id }}" class="song">
-        <p>{{ song.file_name }} playcount-{{ song.times_played}}</p>
-    </li>
+	{% for song in songs %} 
+        {% for s in song.song_set.all %}
+        <li id="{{ song.id }}" class="song">
+            <p>{{ s.album_fk.artist_fk.artist_name }}-{{ s.song_name }} -- playcount-{{ song.times_played}}</p>
+         </li>
+        {% endfor %}
 	{% endfor %}
     </ul>
 <script src="{% static "transmit/js/transmit.js" %}"></script>
