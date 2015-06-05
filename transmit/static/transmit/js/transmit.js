@@ -3,10 +3,17 @@ $(document).ready(function(){
     play = new Player();
     play.sing();
     
+    //play a random song on page load
+    $($('.song')[3]).click()
+
     //handle autoplay changes
     $('#autoPlay').click(function(){
         play.autoPlay();
     });
+    
+    //bind event to search function
+    $('#search').click(addFileToLibrary)
+
 });
 
 function Player(){
@@ -46,3 +53,19 @@ function Player(){
         };
     };
 };
+
+function addFileToLibrary(){
+    searchQuery = $('#youtubeSearch')[0].value;
+    search = $.get('/transmit/youtubesearch/'+searchQuery+'/')
+        .success(function() {
+            add = $.post('/transmit/youtubesearch/'+search.responseText+'/'+searchQuery+'/').success(function(){
+                $.post('/transmit/RefreshMedia/')
+            })
+        })
+    //console.log(add.responseText)
+};
+
+
+
+
+

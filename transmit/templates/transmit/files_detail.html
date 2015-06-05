@@ -2,14 +2,20 @@
 {% load staticfiles %}
 {% block content %}
 <h3>Media Files</h3>
+<div id="youtubeSpan">
+    <label for="youtubeSearch" id="search">add song to library</label>
+    <input type="text" id="youtubeSearch"></input>
+</div>
+<br />
 <audio controls id="player">
-    <source  src='/transmit/play/2/' type="audio/mpeg">
+    <source  src='/transmit/play/12/' type="audio/mpeg">
 </audio>
-    <input id="autoPlay" type="checkbox" name="auto-play" value="autoPlay">auto-play</input>
+<input id="autoPlay" type="checkbox" name="auto-play" value="autoPlay">auto-play</input>
     <ul>
 	{% for song in songs %} 
-        {% for s in song.song_set.all %}
         <li id="{{ song.id }}" class="song">
+        <p>{{song.file_name}}</p>
+        {% for s in song.song_set.all %}
             <p>{{ s.album_fk.artist_fk.artist_name }}-{{ s.song_name }} -- playcount-{{ song.times_played}}</p>
          </li>
         {% endfor %}

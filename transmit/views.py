@@ -8,6 +8,9 @@ import subprocess
 import shlex
 import os
 import fnmatch
+import youtube_dl
+import requests
+import re
 
 #debug only
 import sys
@@ -20,6 +23,7 @@ import pdb
             directory: ~/beets-music
             library: ~/data/musiclibrary.blb
         #run $ beet import /home/matthew/Music periodically to import and sort new music ( $ beet import -A /home/matthew/Music for fast noninteractive)
+        youtube-dl package is used to add new music to the library by downloading the audio from youtube
 '''
 
 musicPath = "/home/matthew/carpi/transmit/media/beets-music/"
@@ -53,13 +57,58 @@ class Player(View):
         response['Content-Disposition'] = 'filename=%s' % song.file_name
         return response
 
-class RefreshMedia(View):
+class YoutubeDownloader(View): 
+    #csrf_exempt decorator only works on the dispatch method
+    @csrf_exempt
+    def dispatch(self, *args, **kwargs):
+        return super(YoutubeDownloader, self).dispatch(*args, **kwargs)
     
+    def get_context_data(self, **kwargs):
+        context = super(YoutubeDownloader, self).get_context_data(**kwargs)
+        return context
+
+    def get(self, request, *args, **kwargs):
+            #receives a search query self.kwargs['query'] and grabs the URI for the topmost matching youtube search
+        searchURL = 'https://www.youtube.com/results?search_query=%s' % self.kwargs['query'].replace(' ','%20')
+        req = requests.get(searchURL)
+        snip = req.text[req.text.find('id="results"'):]
+        results = [m.start() for m in re.finditer('data-context-item-id', snip)][1:]
+        result = snip[results[0]+22:results[0]+39]
+        result = result[:result.find('"')]
+        return HttpResponse(result)
+
+    def post(self, request, *args, **kwargs):
+        #handy variables for where the file is saved, where to move it for import, the move command (requires formatting), and the base youtube URL to be passed a URI (formatted from paramater stored in self.kwargs['URI']. also initial search query is stored in self.kwargs['query'] useful for renaming the new file.
+        try:
+            tempDirectory = '/home/matthew/carpi/%s'
+            mediaDirectory = '/home/matthew/carpi/transmit/media/beets-music/'
+            mvCommand = 'sudo --stdin mv "%s" "%s"' 
+            baseYoutubeURL = 'https://www.youtube.com/watch?v=%s' % self.kwargs['URI']
+            ydlOptions = {'format':'bestaudio/best', 'extractaudio':True, 'audioformat':'mp3', 'outtmpl':'%(title)s', 'noplaylist':True,}
+            ydl = youtube_dl.YoutubeDL(ydlOptions)
+            #pdb.set_trace()
+
+            #I think this method is broken. It parses the string as an iterable on line 1491 
+            #ydl.download(baseYoutubeURL)
+            metaData = ydl.extract_info(baseYoutubeURL) #ydl.extract_info does doens't parse the string. use without download=False parameter
+            pr = subprocess.Popen(mvCommand % ((tempDirectory % metaData['title']), mediaDirectory), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+            pr.stdin.write('richard\n') 
+        except:
+            err = sys.exc_info()
+            pdb.set_trace()
+
+        return HttpResponse('successfully downloaded %s' % metaData['title'])
+
+                                        
+
+class RefreshMedia(View):
+  
     #csrf_exempt decorator only works on the dispatch method
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super(RefreshMedia, self).dispatch(*args, **kwargs)
-    
+
+
     def post(self, request):
         if request.method == 'POST':
             #refresh the database files list
@@ -89,10 +138,10 @@ class RefreshMedia(View):
                     thisTrack = Song.objects.get_or_create(song_name=chunk[2], album_fk = thisAlbum)[0]
 
                     try:
-                        thisTrack.files_fk = Files.objects.get(file_name__contains = thisTrack.song_name)
+                        thisTrack.files_fk = Files.objects.get(file_name__contains = thisTrack.song_name)[0]
                     except:
                         err = sys.exc_info()
-                        pdb.set_trace()
+                        pass
 
                     thisArtist.save()
                     thisAlbum.save()
